@@ -1,19 +1,19 @@
-import cStringIO
+import io
 import unittest
 import time
 import typedbytes
-from itertools import imap
+
 
 
 class TestSpeed(unittest.TestCase):
 
     def testints(self):
-        file = cStringIO.StringIO()
+        file = io.BytesIO()
 
         output = typedbytes.Output(file)
         t = time.time()
-        output.writes(xrange(100000))
-        print time.time() - t
+        output.writes(range(100000))
+        print(time.time() - t)
 
         file.seek(0)
 
@@ -21,17 +21,17 @@ class TestSpeed(unittest.TestCase):
         t = time.time()
         for record in input:
             pass
-        print time.time() -t
+        print(time.time() -t)
 
         file.close()
 
     def teststrings(self):
-        file = cStringIO.StringIO()
+        file = io.BytesIO()
 
         output = typedbytes.Output(file)
         t = time.time()
-        output.writes(imap(str, xrange(100000)))
-        print time.time() - t
+        output.writes(map(str, range(100000)))
+        print(time.time() - t)
 
         file.seek(0)
 
@@ -39,17 +39,17 @@ class TestSpeed(unittest.TestCase):
         t = time.time()
         for record in input:
             pass
-        print time.time() -t
+        print(time.time() -t)
 
         file.close()
 
     def testunicodes(self):
-        file = cStringIO.StringIO()
+        file = io.BytesIO()
 
         output = typedbytes.Output(file)
         t = time.time()
-        output.writes(imap(unicode, xrange(100000)))
-        print time.time() - t
+        output.writes(map(str, range(100000)))
+        print(time.time() - t)
 
         file.seek(0)
 
@@ -57,7 +57,7 @@ class TestSpeed(unittest.TestCase):
         t = time.time()
         for record in input:
             pass
-        print time.time() -t
+        print(time.time() -t)
 
         file.close()
 

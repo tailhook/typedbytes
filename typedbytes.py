@@ -38,7 +38,7 @@ MARKER = 255
 
 def classes():
 
-    from cPickle import dumps, loads, UnpicklingError, HIGHEST_PROTOCOL
+    from pickle import dumps, loads, UnpicklingError, HIGHEST_PROTOCOL
     from struct import pack, unpack, error as StructError
     from array import array
     try:
@@ -52,8 +52,6 @@ def classes():
             def pack(self, *args):
                 return pack(self.fmt, *args)
 
-    from types import BooleanType, IntType, LongType, FloatType 
-    from types import UnicodeType, StringType, TupleType, ListType, DictType
     from datetime import datetime, date
     from decimal import Decimal
 
@@ -67,12 +65,6 @@ def classes():
     unpack_double = Struct('!d').unpack
 
     _len = len
-
-
-    class Bytes(str):
-
-        def __repr__(self):
-            return "Bytes(" + str.__repr__(self) + ")"
 
 
     class Input(object):
@@ -113,7 +105,7 @@ def classes():
             value = self.file.read(count)
             if _len(value) != count:
                 raise StructError("EOF before reading all of bytes type")
-            return Bytes(value)
+            return value
 
         def read_byte(self):
             return unpack_byte(self.file.read(1))[0]
@@ -133,14 +125,12 @@ def classes():
         def read_double(self):
             return unpack_double(self.file.read(8))[0]
 
-        def read_string(self):
+        def read_bytestring(self):
             count = unpack_int(self.file.read(4))[0]
             value = self.file.read(count)
             if _len(value) != count:
                 raise StructError("EOF before reading all of string")
             return value
-
-        read_bytestring = read_string
 
         def read_unicode(self):
             count = unpack_int(self.file.read(4))[0]
@@ -153,7 +143,7 @@ def classes():
             r = self._read
             count = unpack_int(self.file.read(4))[0]
             try:
-                return tuple(r() for i in xrange(count))
+                return tuple(r() for i in range(count))
             except StopIteration:
                 raise StructError("EOF before all vector elements read")
 
@@ -166,7 +156,7 @@ def classes():
         def read_map(self):
             r = self._read
             count = unpack_int(self.file.read(4))[0]
-            return dict((r(), r()) for i in xrange(count))
+            return dict((r(), r()) for i in range(count))
 
         def read_pickle(self):
             count = unpack_int(self.file.read(4))[0]
@@ -189,7 +179,7 @@ def classes():
             LONG: read_long,
             FLOAT: read_float,
             DOUBLE: read_double,
-            STRING: read_string,
+            STRING: read_unicode,
             VECTOR: read_vector,
             LIST: read_list,
             MAP: read_map,
@@ -200,7 +190,7 @@ def classes():
 
         def _make_handler_table(self):
             return list(Input.TYPECODE_HANDLER_MAP.get(i,
-                        Input.invalid_typecode) for i in xrange(256))
+                        Input.invalid_typecode) for i in range(256))
 
         def register(self, typecode, handler):
             self.handler_table[typecode] = handler
@@ -239,7 +229,7 @@ def classes():
             self.handler_map = self._make_handler_map()
 
         def __del__(self):
-            if not file.closed:
+            if not self.file.closed:
                 self.file.flush()
 
         def _write(self, obj):
@@ -281,22 +271,11 @@ def classes():
             else:
                 self.file.write(pack_long(_LONG, int_))
 
-        def write_long(self, long_):
-            # Python longs are infinite precision
-            if -9223372036854775808L <= long_ <= 9223372036854775807L:
-                self.file.write(pack_long(_LONG, long_))
-            else:
-                self.write_pickle(long_)
-
         def write_float(self, float_):
             self.file.write(pack_float(_FLOAT, float_))
 
         def write_double(self, double):
             self.file.write(pack_double(_DOUBLE, double))
-
-        def write_string(self, string):
-            self.file.write(pack_int(_STRING, _len(string)))
-            self.file.write(string)
 
         def write_bytestring(self, string):
             self.file.write(pack_int(_BYTESTRING, _len(string)))
@@ -318,7 +297,7 @@ def classes():
 
         def write_map(self, map):
             self.file.write(pack_int(_MAP, _len(map)))
-            self._writes(flatten(map.iteritems()))
+            self._writes(flatten(map.items()))
 
         def write_pickle(self, obj):
             bytes = dumps(obj, HIGHEST_PROTOCOL)
@@ -331,16 +310,14 @@ def classes():
             self.file.write(bytes)
 
         TYPE_HANDLER_MAP = {
-            BooleanType: write_bool,
-            IntType: write_int,                
-            LongType: write_long,       
-            FloatType: write_double,
-            StringType: write_string,
-            TupleType: write_vector,
-            ListType: write_list,        
-            DictType: write_map,
-            UnicodeType: write_unicode,
-            Bytes: write_bytes,
+            bool: write_bool,
+            int: write_int,
+            float: write_double,
+            tuple: write_vector,
+            list: write_list,
+            dict: write_map,
+            str: write_unicode,
+            bytes: write_bytes,
             datetime: write_pickle,
             date: write_pickle,
             Decimal: write_pickle,
@@ -376,7 +353,7 @@ def classes():
 
         def reads(self):
             it = self._reads()
-            next = it.next
+            next = it.__next__
             while 1:
                 key = next()
                 try:
@@ -397,7 +374,7 @@ def classes():
             self._writes(flatten(iterable))
 
 
-    return Input, Output, PairedInput, PairedOutput, Bytes
+    return Input, Output, PairedInput, PairedOutput
 
 
-Input, Output, PairedInput, PairedOutput, Bytes = classes()
+Input, Output, PairedInput, PairedOutput = classes()
